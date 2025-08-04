@@ -11,6 +11,7 @@ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 margin: 0;
 padding: 0;
 background: linear-gradient(135deg, #ecf0f1, #ffffff);
+transition: background 0.3s, color 0.3s;
 }
 header {
 background-color: #2ecc71;
@@ -24,14 +25,62 @@ max-width: 1000px;
 margin: 30px auto;
 padding: 0 20px;
 }
-.chart-container {
-margin-bottom: 40px;
+.control {
+text-align: center;
+margin-bottom: 30px;
+}
+.toggle-button {
+position: relative;
+width: 80px;
+height: 40px;
+background: #ddd;
+border-radius: 20px;
+cursor: pointer;
+display: inline-block;
+}
+.toggle-button::after {
+content: "";
+position: absolute;
+width: 36px;
+height: 36px;
+top: 2px;
+left: 2px;
+background: white;
+border-radius: 50%;
+transition: transform 0.3s ease;
+}
+.toggle-button.on {
+background: #2ecc71;
+}
+.toggle-button.on::after {
+transform: translateX(40px);
+}
+#status {
+font-weight: bold;
+margin-top: 10px;
+color: #34495e;
 }
 canvas {
 background: #fff;
 border-radius: 10px;
 padding: 10px;
 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+.btn {
+padding: 10px 20px;
+background-color: #e74c3c;
+color: white;
+border: none;
+font-size: 16px;
+cursor: pointer;
+margin: 10px;
+border-radius: 5px;
+}
+.theme-btn {
+background-color: #34495e;
+}
+.chart-container {
+margin-bottom: 40px;
 }
 #costEstimate, #peakLoad, #projection {
 font-size: 1.1em;
@@ -41,6 +90,18 @@ margin: 10px 0;
 #costEstimate { color: #2980b9; font-weight: bold; }
 #peakLoad { color: #e67e22; }
 #projection { color: #8e44ad; }
+
+/* Dark mode styles */
+.dark-mode {
+background: #1e272e;
+color: white;
+}
+.dark-mode canvas {
+background-color: #2f3640;
+}
+.dark-mode header {
+background-color: #1abc9c;
+}
 </style>
 </head>
 <body>
@@ -48,17 +109,32 @@ margin: 10px 0;
 <h1>Fridge Energy Monitoring Dashboard</h1>
 </header>
 <div class="container">
+
+<div class="control">
+<label>Power Switch:</label>
+<div id="toggle" class="toggle-button" onclick="togglePower()"></div>
+<p id="status">Current Status: OFF</p>
+</div>
+
 <div class="chart-container">
 <h3>Hourly Wattage (W)</h3>
 <canvas id="wattageChart"></canvas>
 </div>
+
 <p id="costEstimate">Calculating...</p>
 <p id="peakLoad"></p>
 <p id="projection"></p>
+
 <div class="chart-container">
 <h3>Energy Load Distribution</h3>
 <canvas id="loadDistribution"></canvas>
 </div>
+
+<div class="control">
+<button class="btn" onclick="downloadChart()">Download Chart</button>
+<button class="btn theme-btn" onclick="toggleTheme()">Toggle Theme</button>
+</div>
+
 </div>
 
 <script>
@@ -127,24 +203,22 @@ const peak = Math.max(...dataWatts);
 const peakHour = labels[dataWatts.indexOf(peak)];
 document.getElementById("peakLoad").innerText = `🔺 Peak Load: ${peak}W at ${peakHour}`;
 
-const avgWatt = totalWatts / 24;
-const projectedKWh = (avgWatt * 24) / 1000;
+const projectedKWh = (totalWatts / 1000).toFixed(2);
 const projectedCost = (projectedKWh * costPerKWh).toFixed(2);
 document.getElementById("projection").innerText =
-`📈 Projected Usage: ${projectedKWh.toFixed(2)} kWh → ${projectedCost} BDT/day`;
+`📈 Projected Usage: ${projectedKWh} kWh → ${projectedCost} BDT/day`;
 
 const pieCtx = document.getElementById('loadDistribution').getContext('2d');
-const loadData = {
+const loadDistributionChart = new Chart(pieCtx, {
+type: 'doughnut',
+data: {
 labels: ['Fridge (IT Load)', 'Compressor (Non-IT Load)'],
 datasets: [{
 data: [kWh * 0.6, kWh * 0.4],
 backgroundColor: ['#2980b9', '#e67e22'],
 hoverOffset: 20
 }]
-};
-const loadDistributionChart = new Chart(pieCtx, {
-type: 'doughnut',
-data: loadData,
+},
 options: {
 responsive: true,
 plugins: {
@@ -157,6 +231,25 @@ label: ctx => `${ctx.label}: ${ctx.parsed.toFixed(2)} kWh`
 }
 }
 });
+
+let isOn = false;
+function togglePower() {
+const toggle = document.getElementById("toggle");
+isOn = !isOn;
+toggle.classList.toggle("on", isOn);
+document.getElementById("status").innerText = "Current Status: " + (isOn ? "ON" : "OFF");
+}
+
+function downloadChart() {
+const link = document.createElement('a');
+link.download = 'wattage_chart.png';
+link.href = document.getElementById('wattageChart').toDataURL('image/png');
+link.click();
+}
+
+function toggleTheme() {
+document.body.classList.toggle('dark-mode');
+}
 </script>
 </body>
 </html>
