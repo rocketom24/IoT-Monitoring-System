@@ -1,311 +1,162 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Fridge Energy Monitoring Dashboard</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(135deg, #ecf0f1, #ffffff);
-      transition: background 0.3s, color 0.3s;
-    }
-    header {
-      background-color: #2ecc71;
-      color: white;
-      padding: 20px;
-      text-align: center;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-    }
-    h1 {
-      margin: 0;
-    }
-    .container {
-      max-width: 1000px;
-      margin: 30px auto;
-      padding: 0 20px;
-    }
-    .control, .centered {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-    .toggle-button {
-      position: relative;
-      width: 80px;
-      height: 40px;
-      background: #ddd;
-      border-radius: 20px;
-      cursor: pointer;
-      transition: background 0.3s ease;
-      display: inline-block;
-    }
-    .toggle-button::after {
-      content: "";
-      position: absolute;
-      width: 36px;
-      height: 36px;
-      top: 2px;
-      left: 2px;
-      background: white;
-      border-radius: 50%;
-      transition: transform 0.3s ease;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-    }
-    .toggle-button.on {
-      background: #2ecc71;
-    }
-    .toggle-button.on::after {
-      transform: translateX(40px);
-    }
-    #status {
-      font-weight: bold;
-      margin-top: 15px;
-      font-size: 1.1em;
-      color: #34495e;
-    }
-    .chart-container {
-      margin-bottom: 40px;
-    }
-    canvas {
-      background: #fff;
-      border-radius: 10px;
-      padding: 10px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    }
-    #costEstimate, #peakLoad, #projection {
-      font-size: 1.1em;
-      text-align: center;
-      margin: 10px 0;
-    }
-    #costEstimate { color: #2980b9; font-weight: bold; }
-    #peakLoad { color: #e67e22; }
-    #projection { color: #8e44ad; }
-    .progress-bar {
-      width: 80%;
-      margin: 20px auto;
-      background: #ddd;
-      border-radius: 10px;
-      height: 20px;
-    }
-    .progress-fill {
-      height: 20px;
-      background: #3498db;
-      width: 0;
-      border-radius: 10px;
-      transition: width 0.8s ease;
-    }
-    .btn {
-      padding: 10px 20px;
-      background-color: #e74c3c;
-      color: white;
-      border: none;
-      font-size: 16px;
-      cursor: pointer;
-      margin: 10px 10px 0 10px;
-      border-radius: 5px;
-    }
-    .btn:hover {
-      background-color: #c0392b;
-    }
-    .theme-btn {
-      background-color: #34495e;
-    }
-    .dark-mode {
-      background: #1e272e;
-      color: white;
-    }
-    .dark-mode canvas {
-      background-color: #2f3640;
-    }
-    .dark-mode header {
-      background-color: #1abc9c;
-    }
-    @media (max-width: 600px) {
-      .toggle-button {
-        width: 60px;
-        height: 30px;
-      }
-      .toggle-button::after {
-        width: 26px;
-        height: 26px;
-      }
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Fridge Energy Monitoring Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body {
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+margin: 0;
+padding: 0;
+background: linear-gradient(135deg, #ecf0f1, #ffffff);
+}
+header {
+background-color: #2ecc71;
+color: white;
+padding: 20px;
+text-align: center;
+}
+h1 { margin: 0; }
+.container {
+max-width: 1000px;
+margin: 30px auto;
+padding: 0 20px;
+}
+.chart-container {
+margin-bottom: 40px;
+}
+canvas {
+background: #fff;
+border-radius: 10px;
+padding: 10px;
+box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+#costEstimate, #peakLoad, #projection {
+font-size: 1.1em;
+text-align: center;
+margin: 10px 0;
+}
+#costEstimate { color: #2980b9; font-weight: bold; }
+#peakLoad { color: #e67e22; }
+#projection { color: #8e44ad; }
+</style>
 </head>
 <body>
-  <header>
-    <h1>Fridge Energy Monitoring Dashboard</h1>
-  </header>
+<header>
+<h1>Fridge Energy Monitoring Dashboard</h1>
+</header>
+<div class="container">
+<div class="chart-container">
+<h3>Hourly Wattage (W)</h3>
+<canvas id="wattageChart"></canvas>
+</div>
+<p id="costEstimate">Calculating...</p>
+<p id="peakLoad"></p>
+<p id="projection"></p>
+<div class="chart-container">
+<h3>Energy Load Distribution</h3>
+<canvas id="loadDistribution"></canvas>
+</div>
+</div>
 
-  <div class="container">
-    <p id="datetime"></p>
+<script>
+const labels = [
+"00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00",
+"08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00",
+"16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"
+];
 
-    <div class="control">
-      <label>Power Switch:</label>
-      <div id="toggle" class="toggle-button" onclick="togglePower()"></div>
-      <p id="status">Current Status: OFF</p>
-    </div>
+const dataWatts = [
+78.3, 68.0, 69.9, 74.9, 83.1, 74.3, 67.6, 78.2, 83.8, 87.4, 75.2, 85.5,
+87.3, 73.2, 78.6, 76.3, 78.5, 78.4, 86.6, 78.1, 83.2, 84.2, 61.9, 87.2
+];
 
-    <div class="chart-container">
-      <h3>Hourly Wattage (W)</h3>
-      <canvas id="wattageChart"></canvas>
-    </div>
+const ctx = document.getElementById('wattageChart').getContext('2d');
+const wattageChart = new Chart(ctx, {
+type: 'line',
+data: {
+labels: labels,
+datasets: [{
+label: 'Wattage (W)',
+data: dataWatts,
+borderColor: '#27ae60',
+backgroundColor: 'rgba(39, 174, 96, 0.2)',
+tension: 0.4,
+fill: true,
+pointBackgroundColor: '#27ae60',
+pointRadius: 4
+}]
+},
+options: {
+responsive: true,
+plugins: {
+tooltip: {
+callbacks: {
+label: ctx => ` ${ctx.parsed.y} W`
+}
+}
+},
+scales: {
+y: {
+beginAtZero: true,
+title: {
+display: true,
+text: 'Watts'
+}
+},
+x: {
+title: {
+display: true,
+text: 'Time (Hours)'
+}
+}
+}
+}
+});
 
-    <p id="costEstimate">Calculating...</p>
-    <p id="peakLoad"></p>
-    <p id="projection"></p>
+const totalWatts = dataWatts.reduce((a, b) => a + b, 0);
+const kWh = totalWatts / 1000;
+const costPerKWh = 7.5;
+const cost = (kWh * costPerKWh).toFixed(2);
 
-    <div class="chart-container">
-      <h3>Energy Load Distribution</h3>
-      <canvas id="loadDistribution"></canvas>
-    </div>
+document.getElementById("costEstimate").innerText = `Estimated Daily Cost: ${cost} BDT (${kWh.toFixed(2)} kWh)`;
 
-    <div class="centered">
-      <label style="font-weight:bold;">Usage Efficiency</label>
-      <div class="progress-bar">
-        <div id="efficiencyBar" class="progress-fill"></div>
-      </div>
-    </div>
+const peak = Math.max(...dataWatts);
+const peakHour = labels[dataWatts.indexOf(peak)];
+document.getElementById("peakLoad").innerText = `🔺 Peak Load: ${peak}W at ${peakHour}`;
 
-    <div class="centered">
-      <button class="btn" onclick="downloadChart()">Download Chart</button>
-      <button class="btn theme-btn" onclick="toggleTheme()">Toggle Theme</button>
-    </div>
-  </div>
+const avgWatt = totalWatts / 24;
+const projectedKWh = (avgWatt * 24) / 1000;
+const projectedCost = (projectedKWh * costPerKWh).toFixed(2);
+document.getElementById("projection").innerText =
+`📈 Projected Usage: ${projectedKWh.toFixed(2)} kWh → ${projectedCost} BDT/day`;
 
-  <script>
-    function updateDateTime() {
-      const now = new Date();
-      const datetime = now.toLocaleString();
-      document.getElementById('datetime').innerText = datetime;
-    }
-    setInterval(updateDateTime, 1000);
-    updateDateTime();
-
-    const labels = [...Array(24).keys()].map(i => i + ":00");
-    const dataWatts = [70, 68, 66, 64, 63, 61, 60, 62, 65, 70, 75, 80, 78, 75, 73, 70, 68, 66, 65, 64, 62, 60, 58, 56];
-
-    const ctx = document.getElementById('wattageChart').getContext('2d');
-    const wattageChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Wattage (W)',
-          data: dataWatts,
-          borderColor: '#27ae60',
-          backgroundColor: 'rgba(39, 174, 96, 0.2)',
-          tension: 0.4,
-          fill: true,
-          pointBackgroundColor: '#27ae60',
-          pointRadius: 4
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: ctx => ` ${ctx.parsed.y} W`
-            }
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            title: {
-              display: true,
-              text: 'Watts'
-            }
-          },
-          x: {
-            title: {
-              display: true,
-              text: 'Time (Hours)'
-            }
-          }
-        }
-      }
-    });
-
-    const totalWatts = dataWatts.reduce((a, b) => a + b, 0);
-    const kWh = totalWatts / 1000;
-    const costPerKWh = 7.5;
-    const cost = (kWh * costPerKWh).toFixed(2);
-
-    let costCounter = 0;
-    const costDisplay = document.getElementById("costEstimate");
-    const costInterval = setInterval(() => {
-      if (costCounter < parseFloat(cost)) {
-        costCounter += 0.05;
-        costDisplay.innerText = `Estimated Daily Cost: ${costCounter.toFixed(2)} BDT (${kWh.toFixed(2)} kWh)`;
-      } else {
-        costDisplay.innerText = `Estimated Daily Cost: ${cost} BDT (${kWh.toFixed(2)} kWh)`;
-        clearInterval(costInterval);
-      }
-    }, 30);
-
-    const peak = Math.max(...dataWatts);
-    const peakHour = labels[dataWatts.indexOf(peak)];
-    document.getElementById("peakLoad").innerText = `🔺 Peak Load: ${peak}W at ${peakHour}`;
-
-    const avgWatt = totalWatts / 24;
-    const projectedKWh = (avgWatt * 24) / 1000;
-    const projectedCost = (projectedKWh * costPerKWh).toFixed(2);
-    document.getElementById("projection").innerText =
-      `📈 Projected Usage: ${projectedKWh.toFixed(2)} kWh → ${projectedCost} BDT/day`;
-
-    const pieCtx = document.getElementById('loadDistribution').getContext('2d');
-    const loadData = {
-      labels: ['Fridge (IT Load)', 'Compressor (Non-IT Load)'],
-      datasets: [{
-        data: [kWh * 0.6, kWh * 0.4],
-        backgroundColor: ['#2980b9', '#e67e22'],
-        hoverOffset: 20
-      }]
-    };
-    const loadDistributionChart = new Chart(pieCtx, {
-      type: 'doughnut',
-      data: loadData,
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: 'bottom' },
-          tooltip: {
-            callbacks: {
-              label: ctx => `${ctx.label}: ${ctx.parsed.toFixed(2)} kWh`
-            }
-          }
-        }
-      }
-    });
-
-    const targetKWh = 2.5;
-    const efficiencyPercent = Math.min((kWh / targetKWh) * 100, 100);
-    const efficiencyBar = document.getElementById('efficiencyBar');
-    efficiencyBar.style.width = efficiencyPercent + '%';
-
-    let isOn = false;
-    function togglePower() {
-      const toggle = document.getElementById("toggle");
-      isOn = !isOn;
-      toggle.classList.toggle("on", isOn);
-      document.getElementById("status").innerText = "Current Status: " + (isOn ? "ON" : "OFF");
-    }
-
-    function downloadChart() {
-      const link = document.createElement('a');
-      link.download = 'wattage_chart.png';
-      link.href = document.getElementById('wattageChart').toDataURL('image/png', 1.0);
-      link.click();
-    }
-
-    function toggleTheme() {
-      document.body.classList.toggle('dark-mode');
-    }
-  </script>
+const pieCtx = document.getElementById('loadDistribution').getContext('2d');
+const loadData = {
+labels: ['Fridge (IT Load)', 'Compressor (Non-IT Load)'],
+datasets: [{
+data: [kWh * 0.6, kWh * 0.4],
+backgroundColor: ['#2980b9', '#e67e22'],
+hoverOffset: 20
+}]
+};
+const loadDistributionChart = new Chart(pieCtx, {
+type: 'doughnut',
+data: loadData,
+options: {
+responsive: true,
+plugins: {
+legend: { position: 'bottom' },
+tooltip: {
+callbacks: {
+label: ctx => `${ctx.label}: ${ctx.parsed.toFixed(2)} kWh`
+}
+}
+}
+}
+});
+</script>
 </body>
 </html>
